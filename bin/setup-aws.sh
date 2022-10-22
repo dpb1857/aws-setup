@@ -173,23 +173,22 @@ function setup_dpb() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y emacs
 }
 
-function setup_dpb_all() {
-    if [ "$GEMFURY_USERNAME" = "" ]; then
-      echo "must have GEMFURY_USERNAME set"
-      exit 1
+function setup_desktop() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
+    file=nomachine_8.1.2_1_amd64.deb
+    (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
+    sudo dpkg -i /tmp/$file
+    echo "*** Need to reboot to enable remote desktop login with nx ***"
+    read -p "Reboot now? (Y/n) " response
+    if [ -z "$response" -o "$response" = "Y" ]; then
+        echo "rebooting now"
     fi
-
-    setup_docker
-    setup_pyenv
-    export PATH="$HOME/.pyenv/bin:$PATH"
-    barb_local
-    qcducks_local
-    setup_dpb
 }
 
 function help() {
     echo "Subcommands:"
     echo "  docker"
+    echo "  desktop"
     echo "  barb_docker"
     echo "  pyenv"
     echo "  barb_local"
@@ -205,11 +204,11 @@ case $command in
         ;;
     docker) setup_docker
         ;;
+    desktop) setup_desktop
+        ;;
     pyenv) setup_pyenv
         ;;
     dpb) setup_dpb
-        ;;
-    dpb_all) setup_dpb_all
         ;;
     barb_local) barb_local
         ;;
