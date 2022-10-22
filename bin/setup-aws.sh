@@ -34,6 +34,8 @@ function init() {
     rsync -av /usr/local/aws-setup /home/${USER}
     chown -R ${USER}:${USER} /home/${USER}/aws-setup
     (cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})
+
+    echo '. $HOME/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
 }
 
 ##################################################
