@@ -15,3 +15,9 @@ if [ -f $HOME/vault/vault-setup.sh ]; then
     sleep 1
     . $HOME/vault/vault-setup.sh
 fi
+
+if [ -d $HOME/vault/dot-aws -a ! -a $HOME/.aws ]; then
+    echo "Linking .aws to ~/vault/dot-aws"
+    sleep 1
+    ln -s $HOME/vault/dot-aws $HOME/.aws
+fi
