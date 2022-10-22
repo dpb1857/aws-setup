@@ -29,6 +29,9 @@ function init() {
     apt-get install -y libbz2-dev zlib1g-dev liblzma-dev
     apt-get install -y libsqlite3-dev libgdbm-dev
     apt-get install -y libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
+
+    rsync -av /usr/local/aws-setup /home/${USER}
+    chown -R ${USER}:${USER} /home/${USER}/aws-setup
 }
 
 ##################################################
