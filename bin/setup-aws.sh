@@ -13,6 +13,7 @@ function init() {
     apt-get update
     apt-get upgrade -y
     apt-get install -y make mg postgresql-client jq nfs-common awscli
+    apt-get install -y ecryptfs-utils
 
     adduser ${USER}
     adduser ${USER} sudo
