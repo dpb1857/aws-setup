@@ -182,6 +182,7 @@ function qcducks_local() {
 ##################################################
 
 function setup_dpb() {
+    cd $HOME
     git clone git@github.com:dpb1857/synced
     if [ $? -ne 0 ]; then
       echo "You probably forgot to do 'ssh -A'"
