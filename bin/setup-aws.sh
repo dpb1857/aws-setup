@@ -56,6 +56,7 @@ function setup_desktop() {
     read -p "Reboot now? (Y/n) " response
     if [ -z "$response" -o "$response" = "Y" ]; then
         echo "rebooting now"
+        sudo reboot
     fi
 }
 
