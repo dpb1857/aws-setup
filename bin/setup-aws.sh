@@ -35,6 +35,9 @@ function init() {
     apt-get install -y libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
 
     rsync -av /usr/local/aws-setup /home/${USER}
+    (cd /home/${USER}/aws-setup && git remote rm origin)
+    (cd /home/${USER}/aws-setup && git remote add origin git@github.com:dpb1857/aws-setup)
+
     chown -R ${USER}:${USER} /home/${USER}/aws-setup
     (cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})
 
