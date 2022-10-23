@@ -25,6 +25,9 @@ function init() {
     rsync -av /home/ubuntu/ /home/${USER}
     chown -R ${USER}:${USER} /home/${USER}
 
+    # Set the locale
+    sudo update-locale LANG=en_US.UTF-8
+
     # Setup packages so pyenv can build python
     apt-get install -y gcc
     apt-get install -y libbz2-dev zlib1g-dev liblzma-dev
@@ -36,6 +39,24 @@ function init() {
     (cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})
 
     echo '. $HOME/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
+}
+
+##################################################
+# Desktop setup
+##################################################
+
+function setup_desktop() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
+    sudo systemctl stop lightdm
+    sudo systemctl disable lightdm
+    file=nomachine_8.1.2_1_amd64.deb
+    (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
+    sudo dpkg -i /tmp/$file
+    echo "*** Need to reboot to enable remote desktop login with nx ***"
+    read -p "Reboot now? (Y/n) " response
+    if [ -z "$response" -o "$response" = "Y" ]; then
+        echo "rebooting now"
+    fi
 }
 
 ##################################################
@@ -171,18 +192,6 @@ function setup_dpb() {
     git config --global user.name "Don Bennett"
 
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y emacs
-}
-
-function setup_desktop() {
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
-    file=nomachine_8.1.2_1_amd64.deb
-    (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
-    sudo dpkg -i /tmp/$file
-    echo "*** Need to reboot to enable remote desktop login with nx ***"
-    read -p "Reboot now? (Y/n) " response
-    if [ -z "$response" -o "$response" = "Y" ]; then
-        echo "rebooting now"
-    fi
 }
 
 function help() {
