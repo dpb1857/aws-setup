@@ -33,19 +33,21 @@ function add-user() {
     fi
     sudo adduser ${USER}
     sudo adduser ${USER} sudo
-    bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
+    sudo bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
 
     sudo addgroup docker
+    echo "configure user"
+    set -x
     sudo adduser ${USER} docker
-
-    sudo rsync -av /home/ubuntu/ /home/${USER}
+    sudo rsync -a /home/ubuntu/ /home/${USER}
     sudo chown -R ${USER}:${USER} /home/${USER}
 
-    sudo rsync -av /usr/local/aws-setup /home/${USER}
+    sudo rsync -a /usr/local/aws-setup /home/${USER}
     sudo chown -R ${USER}:${USER} /home/${USER}/aws-setup
     sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})"
 
     sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
+    set +x
 }
 
 ##################################################
