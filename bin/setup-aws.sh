@@ -191,6 +191,8 @@ function qcducks_local() {
 ##################################################
 
 function setup_dpb() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get apt-get install -y httpie
+
     cd $HOME
     git clone git@github.com:dpb1857/synced
     if [ $? -ne 0 ]; then
