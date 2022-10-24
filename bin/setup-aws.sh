@@ -24,7 +24,7 @@ function init() {
     apt-get install -y libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
 }
 
-function adduser() {
+function add-user() {
     USER=$1
     adduser ${USER}
     adduser ${USER} sudo
@@ -203,7 +203,7 @@ function setup_dpb() {
 
 function help() {
     echo "Subcommands:"
-    echo "  adduser <username>"
+    echo "  add-user <username>"
     echo "  docker"
     echo "  desktop"
     echo "  barb_docker"
@@ -218,9 +218,9 @@ shift
 case $command in
     init) init
         ;;
-    adduser)
+    add-user)
         user=$1
-        adduser $user
+        add-user $user
         ;;
     docker) setup_docker
         ;;
