@@ -26,6 +26,11 @@ function init() {
 
 function add-user() {
     USER=$1
+    if [ -z "${USER}" ]; then
+        echo "username unspecified."
+        help
+        exit 1
+    fi
     adduser ${USER}
     adduser ${USER} sudo
     bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
