@@ -31,21 +31,21 @@ function add-user() {
         help
         exit 1
     fi
-    adduser ${USER}
-    adduser ${USER} sudo
+    sudo adduser ${USER}
+    sudo adduser ${USER} sudo
     bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
 
-    addgroup docker
-    adduser ${USER} docker
+    sudo addgroup docker
+    sudo adduser ${USER} docker
 
-    rsync -av /home/ubuntu/ /home/${USER}
-    chown -R ${USER}:${USER} /home/${USER}
+    sudo rsync -av /home/ubuntu/ /home/${USER}
+    sudo chown -R ${USER}:${USER} /home/${USER}
 
-    rsync -av /usr/local/aws-setup /home/${USER}
-    (cd /home/${USER}/aws-setup && git remote rm origin)
-    (cd /home/${USER}/aws-setup && git remote add origin git@github.com:dpb1857/aws-setup)
+    sudo rsync -av /usr/local/aws-setup /home/${USER}
+    (cd /home/${USER}/aws-setup && sudo git remote rm origin)
+    (cd /home/${USER}/aws-setup && sudo git remote add origin git@github.com:dpb1857/aws-setup)
 
-    chown -R ${USER}:${USER} /home/${USER}/aws-setup
+    sudo chown -R ${USER}:${USER} /home/${USER}/aws-setup
     (cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})
 
     echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
