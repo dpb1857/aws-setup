@@ -30,4 +30,5 @@ fi
 if [ -f $HOME/vault/dot-ssh/id_rsa -a ! -f $HOME/.ssh/id_rsa ]; then
     echo "Linking ssh private key to ~/.ssh"
     ln -s $HOME/vault/dot-ssh/id_rsa $HOME/.ssh/id_rsa
+    chmod 600 $HOME/.ssh/id_rsa
 fi
