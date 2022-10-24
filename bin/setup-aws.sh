@@ -42,11 +42,10 @@ function add-user() {
     sudo chown -R ${USER}:${USER} /home/${USER}
 
     sudo rsync -av /usr/local/aws-setup /home/${USER}
-    (cd /home/${USER}/aws-setup && sudo git remote rm origin)
-    (cd /home/${USER}/aws-setup && sudo git remote add origin git@github.com:dpb1857/aws-setup)
-
     sudo chown -R ${USER}:${USER} /home/${USER}/aws-setup
-    (cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})
+    sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && git remote rm origin)"
+    sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo git remote add origin git@github.com:dpb1857/aws-setup)"
+    sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})"
 
     echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
 }
