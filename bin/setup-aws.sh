@@ -9,21 +9,10 @@ export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChec
 ##################################################
 
 function init() {
-    USER=$1
     apt-get update
     apt-get upgrade -y
     apt-get install -y make mg postgresql-client jq nfs-common awscli
     apt-get install -y ecryptfs-utils
-
-    adduser ${USER}
-    adduser ${USER} sudo
-    bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
-
-    addgroup docker
-    adduser ${USER} docker
-
-    rsync -av /home/ubuntu/ /home/${USER}
-    chown -R ${USER}:${USER} /home/${USER}
 
     # Set the locale
     sudo update-locale LANG=en_US.UTF-8
@@ -33,6 +22,19 @@ function init() {
     apt-get install -y libbz2-dev zlib1g-dev liblzma-dev
     apt-get install -y libsqlite3-dev libgdbm-dev
     apt-get install -y libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
+}
+
+function adduser() {
+    USER=$1
+    adduser ${USER}
+    adduser ${USER} sudo
+    bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
+
+    addgroup docker
+    adduser ${USER} docker
+
+    rsync -av /home/ubuntu/ /home/${USER}
+    chown -R ${USER}:${USER} /home/${USER}
 
     rsync -av /usr/local/aws-setup /home/${USER}
     (cd /home/${USER}/aws-setup && git remote rm origin)
@@ -201,6 +203,7 @@ function setup_dpb() {
 
 function help() {
     echo "Subcommands:"
+    echo "  adduser <username>"
     echo "  docker"
     echo "  desktop"
     echo "  barb_docker"
@@ -213,8 +216,11 @@ function help() {
 command=$1
 shift
 case $command in
-    init) user=$1
-        init $user
+    init) init
+        ;;
+    adduser)
+        user=$1
+        adduser $user
         ;;
     docker) setup_docker
         ;;
