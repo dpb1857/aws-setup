@@ -24,12 +24,10 @@ fi
 
 if [ -d $HOME/vault/dot-aws -a ! -a $HOME/.aws ]; then
     echo "Linking .aws to ~/vault/dot-aws"
-    sleep 1
     ln -s $HOME/vault/dot-aws $HOME/.aws
 fi
 
-if [ -d $HOME/vault/dot-ssh -a ! -a $HOME/.ssh ]; then
-    echo "Linking .ssh to ~/vault/dot-ssh"
-    sleep 1
-    ln -s $HOME/vault/dot-ssh $HOME/.ssh
+if [ -f $HOME/vault/dot-ssh/id_rsa -a ! -f $HOME/.ssh/id_rsa ]; then
+    echo "Linking ssh private key to ~/.ssh"
+    ln -s $HOME/vault/dot-ssh/id_rsa $HOME/.ssh/id_rsa
 fi
