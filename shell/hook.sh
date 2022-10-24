@@ -27,3 +27,9 @@ if [ -d $HOME/vault/dot-aws -a ! -a $HOME/.aws ]; then
     sleep 1
     ln -s $HOME/vault/dot-aws $HOME/.aws
 fi
+
+if [ -d $HOME/vault/dot-ssh -a ! -a $HOME/.ssh ]; then
+    echo "Linking .ssh to ~/vault/dot-ssh"
+    sleep 1
+    ln -s $HOME/vault/dot-ssh $HOME/.ssh
+fi
