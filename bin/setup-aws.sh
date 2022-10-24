@@ -47,7 +47,7 @@ function add-user() {
     sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo git remote add origin git@github.com:dpb1857/aws-setup)"
     sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})"
 
-    echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
+    sudo echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc
 }
 
 ##################################################
