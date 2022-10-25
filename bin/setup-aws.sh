@@ -220,6 +220,16 @@ function setup_dpb() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y emacs
 }
 
+function setup_dpb_all() {
+    (setup_dpb)
+    (setup_pyenv)
+    . ~/.bashrc
+    (barb_local)
+    (qcducks_local)
+    (setup_desktop)
+}
+
+
 function help() {
     echo "Subcommands:"
     echo "  add-user <username>"
@@ -230,6 +240,7 @@ function help() {
     echo "  barb_local"
     echo "  qcducks_local"
     echo "  dpb"
+    echo "  dpb-all"
 }
 
 command=$1
@@ -248,6 +259,8 @@ case $command in
     pyenv) setup_pyenv
         ;;
     dpb) setup_dpb
+        ;;
+    dpb-all) setup_dpb_all
         ;;
     barb_local) barb_local
         ;;
