@@ -7,6 +7,7 @@ fi
 if [ ! -f vault/.placeholder ]; then
     echo "***** Mounting encrypted vault from github *****"
     sleep 2
+    chmod 600 $HOME/.aws-vault/vault/dot-ssh/id_rsa
     sudo mount -t ecryptfs -r $HOME/.aws-vault/vault $HOME/vault
 
     if [ ! "`cat vault/.placeholder 2>/dev/null`" = "placeholder" ]; then
@@ -30,5 +31,4 @@ fi
 if [ -f $HOME/vault/dot-ssh/id_rsa -a ! -f $HOME/.ssh/id_rsa ]; then
     echo "Linking ssh private key to ~/.ssh"
     ln -s $HOME/vault/dot-ssh/id_rsa $HOME/.ssh/id_rsa
-    chmod 600 $HOME/.ssh/id_rsa
 fi
