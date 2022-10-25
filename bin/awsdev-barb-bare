@@ -9,7 +9,9 @@ if ! command -v pyenv >/dev/null; then
    exit 1
 fi
 
-barb_checkout
+if [ ! -d $HOME/code/barb ]; then
+    git clone git@github.com:Synthego/barb.git $HOME/code/barb
+fi
 (cd $HOME/code/barb && pyenv local 3.10.7)
 (cd $HOME/code/barb && python -m venv venv)
 (cd $HOME/code/barb && venv/bin/pip install --upgrade pip)
@@ -17,5 +19,4 @@ barb_checkout
 
 # Support for modules in python requirements
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libcurl4-openssl-dev libldap-dev libsasl2-dev
-
 (cd $HOME/code/barb && venv/bin/pip install -r requirements.txt)
