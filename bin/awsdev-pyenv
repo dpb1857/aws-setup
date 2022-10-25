@@ -6,11 +6,10 @@ if [ -d ~/.pyenv ]; then
 fi
 
 # Setup packages so pyenv can build python
-apt-get install -y gcc
-apt-get install -y libbz2-dev zlib1g-dev liblzma-dev
-apt-get install -y libsqlite3-dev libgdbm-dev
-apt-get install -y libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
-
+sudo apt-get install -y gcc \
+                        libbz2-dev zlib1g-dev liblzma-dev \
+                        libsqlite3-dev libgdbm-dev \
+                        libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
 # install pyenv
 git clone https://github.com/pyenv/pyenv.git ~/.pyenv
 echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
