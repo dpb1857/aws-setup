@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "$GEMFURY_USERNAME" = "" ]; then
+  echo "must have GEMFURY_USERNAME set"
+  exit 1
+fi
+
+git clone git@github.com:Synthego/barb.git code/barb
+
+(cd $HOME/code/barb && make build)
+
+echo "*** Need a database? This takes a long time to setup... ***"
+read -p "Restore db snapshot? (y/N) " response
+if [ "$response" = "y" -o "$response" = "Y" ]; then
+   (cd $HOME/code/barb && make dbsync)
+fi
