@@ -35,9 +35,8 @@ function add-user() {
     sudo adduser ${USER} sudo
     sudo bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
 
-    echo "${USER} ALL=(root) NOPASSWD: /bin/mount *" > /etc/sudoers.d/mount
-    echo "${USER} ALL=(root) NOPASSWD: /bin/umount *" >> /etc/sudoers.d/mount
-
+    sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/mount *\" > /etc/sudoers.d/mount"
+    sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/umount *\" >> /etc/sudoers.d/mount"
 
     sudo addgroup docker
     echo "configure user"
