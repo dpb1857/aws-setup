@@ -1,4 +1,10 @@
 
+export PATH=$HOME/bin:$PATH
+
+if [ -d $HOME/.aws-vault/bin -a ! -f $HOME/bin ]; then
+    ln -s $HOME/.aws-vault/bin $HOME/bin
+fi
+
 cd $HOME
 if [ ! -d vault ]; then
     mkdir vault
