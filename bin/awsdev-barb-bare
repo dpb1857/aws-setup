@@ -1,0 +1,21 @@
+#1/bin/bash
+
+if [ "$GEMFURY_USERNAME" = "" ]; then
+  echo "must have GEMFURY_USERNAME set"
+  exit 1
+fi
+if ! command -v pyenv >/dev/null; then
+   echo "pyenv not found; re-source .bashrc?"
+   exit 1
+fi
+
+barb_checkout
+(cd $HOME/code/barb && pyenv local 3.10.7)
+(cd $HOME/code/barb && python -m venv venv)
+(cd $HOME/code/barb && venv/bin/pip install --upgrade pip)
+(cd $HOME/code/barb && venv/bin/pip install wheel)
+
+# Support for modules in python requirements
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libcurl4-openssl-dev libldap-dev libsasl2-dev
+
+(cd $HOME/code/barb && venv/bin/pip install -r requirements.txt)
