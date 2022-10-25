@@ -25,7 +25,6 @@ fi
 
 if [ -f $HOME/vault/vault-setup.sh ]; then
     echo "Running ~/vault/vault-setup.sh"
-    sleep 1
     . $HOME/vault/vault-setup.sh
 fi
 
