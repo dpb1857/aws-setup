@@ -12,9 +12,9 @@ sudo bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud
 sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/mount *\" > /etc/sudoers.d/mount"
 sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/umount *\" >> /etc/sudoers.d/mount"
 
+# Just in case we decide to use docker...
 sudo addgroup docker
 sudo adduser ${USER} docker
-sudo -u ${USER} git clone https://github.com/dpb1857/aws-vault
 
 # Copy the ubuntu user pub key into our new user
 sudo rsync -a /home/ubuntu/.ssh /home/${USER}
