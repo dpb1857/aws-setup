@@ -56,12 +56,21 @@ function add-user() {
 
 function setup_desktop() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-dejavu-core
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-dejavu-core # don uses in emacs
+
+    # Disable lightdm, install nx (from nomachine)
     sudo systemctl stop lightdm
     sudo systemctl disable lightdm
     file=nomachine_8.1.2_1_amd64.deb
     (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
     sudo dpkg -i /tmp/$file
+
+    # Install Chrome
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+    sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+    sudo apt-get update
+    sudo apt-get install google-chrome-stable
+
     echo "*** Need to reboot to enable remote desktop login with nx ***"
     read -p "Reboot now? (Y/n) " response
     if [ -z "$response" -o "$response" = "Y" ]; then
