@@ -17,11 +17,12 @@ sudo addgroup docker
 sudo adduser ${USER} docker
 sudo -u ${USER} git clone https://github.com/dpb1857/aws-vault
 
-# sudo rsync -a /home/ubuntu/ /home/${USER}
-# sudo chown -R ${USER}:${USER} /home/${USER}
+# Copy the ubuntu user pub key into our new user
+sudo rsync -a /home/ubuntu/.ssh /home/${USER}
+sudo chown -R ${USER}:${USER} /home/${USER}/.ssh
 
-# sudo rsync -a /usr/local/aws-setup /home/${USER}
-# sudo chown -R ${USER}:${USER} /home/${USER}/aws-setup
-# sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})"
+# Clone our encrypted volume of keys & env settings
+sudo -u dpb bash -c "cd /home/dpb && git clone https://github.com/dpb1857/aws-vault"
 
-# sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
+# Add startup hook into .bashrc
+sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
