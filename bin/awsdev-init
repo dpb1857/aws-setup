@@ -1,0 +1,9 @@
+#!/bin/bash
+
+apt-get update
+apt-get upgrade -y
+apt-get install -y make mg postgresql-client jq nfs-common awscli
+apt-get install -y ecryptfs-utils
+
+# Set the locale
+sudo update-locale LANG=en_US.UTF-8

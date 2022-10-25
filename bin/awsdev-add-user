@@ -1,0 +1,27 @@
+#!/bin/bash
+
+USER=$1
+if [ -z "${USER}" ]; then
+    echo "username unspecified."
+    help
+    exit 1
+fi
+sudo adduser ${USER}
+sudo adduser ${USER} sudo
+sudo bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
+
+sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/mount *\" > /etc/sudoers.d/mount"
+sudo bash -c "echo \"${USER} ALL=(root) NOPASSWD: /bin/umount *\" >> /etc/sudoers.d/mount"
+
+sudo addgroup docker
+sudo adduser ${USER} docker
+sudo -u ${USER} git clone https://github.com/dpb1857/aws-vault
+
+# sudo rsync -a /home/ubuntu/ /home/${USER}
+# sudo chown -R ${USER}:${USER} /home/${USER}
+
+# sudo rsync -a /usr/local/aws-setup /home/${USER}
+# sudo chown -R ${USER}:${USER} /home/${USER}/aws-setup
+# sudo -u ${USER} bash -c "(cd /home/${USER}/aws-setup && sudo -u ${USER} git checkout -b ${USER} origin/${USER})"
+
+# sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
