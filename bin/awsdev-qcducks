@@ -1,0 +1,23 @@
+#1/bin/bash
+
+if [ "$GEMFURY_USERNAME" = "" ]; then
+  echo "must have GEMFURY_USERNAME set"
+  exit 1
+fi
+if ! command -v pyenv >/dev/null; then
+   echo "pyenv not found; re-source .bashrc?"
+   exit 1
+fi
+
+git clone git@github.com:Synthego/qcducks.git code/qcducks
+(cd code/qcducks && git checkout -b requirements origin/don-update-requirements)
+(cd $HOME/code/qcducks && pyenv local 3.10.7)
+(cd $HOME/code/qcducks && python -m venv venv)
+(cd $HOME/code/qcducks && venv/bin/pip install --upgrade pip)
+(cd $HOME/code/qcducks && venv/bin/pip install wheel)
+
+# Support for modules in python requirements
+# sudo apt-get install libcurl4-openssl-dev libldap-dev libsasl2-dev
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y pkgconf libpq-dev libcurl4-openssl-dev
+
+(cd $HOME/code/qcducks && venv/bin/pip install -r requirements.txt)
