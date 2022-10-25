@@ -7,7 +7,7 @@ fi
 if [ ! -f vault/.placeholder ]; then
     echo "***** Mounting encrypted vault from github *****"
     sleep 2
-    sudo mount -t ecryptfs -r $HOME/aws-setup/vault $HOME/vault
+    sudo mount -t ecryptfs -r $HOME/.aws-vault/vault $HOME/vault
 
     if [ ! "`cat vault/.placeholder 2>/dev/null`" = "placeholder" ]; then
         echo "vault mount failed."
