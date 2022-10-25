@@ -56,6 +56,7 @@ function add-user() {
 
 function setup_desktop() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-dejavu-core
     sudo systemctl stop lightdm
     sudo systemctl disable lightdm
     file=nomachine_8.1.2_1_amd64.deb
