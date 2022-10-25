@@ -55,6 +55,11 @@ function setup_desktop() {
     file=nomachine_8.1.2_1_amd64.deb
     (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
     sudo dpkg -i /tmp/$file
+
+    if [ -x $HOME/aws-setup/bin-${USER}/cinnamon.sh ]; then
+        $HOME/aws-setup/bin-${USER}/cinnamon.sh
+    fi
+
     echo "*** Need to reboot to enable remote desktop login with nx ***"
     read -p "Reboot now? (Y/n) " response
     if [ -z "$response" -o "$response" = "Y" ]; then
