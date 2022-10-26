@@ -11,7 +11,7 @@ if [ ! -d private ]; then
 fi
 
 if [ ! -f private/.placeholder ]; then
-    echo "***** Mounting encrypted vault from github *****"
+    echo "***** Mounting encrypted private direcotory from github *****"
     sleep 2
     chmod 600 $HOME/.aws-private/private/dot-ssh/id_rsa
     sudo mount -t ecryptfs -r $HOME/.aws-private/private $HOME/private
