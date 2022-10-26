@@ -41,10 +41,14 @@ fi
 # Checkout & configure jormungand
 # See https://synthego.atlassian.net/wiki/spaces/CS/pages/721617002/Coding+environment+setup#Vault
 if [ ! -d $HOME/code/jormungand ]; then
+    echo "Downloading jormungand"
     mkdir -p $HOME/code  # Or create a symlink to your favorite alternative location
     git clone git@github.com:Synthego/ansible-common.git $HOME/code/jormungand  # Rename in progress
 
     run_commands_file="$HOME/.$(basename $(ps -p $$ -oargs= | sed s/-//))rc"
     echo >> $run_commands_file
     echo '. ~/code/jormungand/shell_includes.sh' >> $run_commands_file
+
+    # Load them here the first time
+    . ~/code/jormungand/shell_includes.sh
 fi
