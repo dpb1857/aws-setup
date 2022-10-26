@@ -25,3 +25,9 @@ sudo -u dpb bash -c "cd /home/dpb && git clone https://github.com/dpb1857/aws-pr
 
 # Add startup hook into .bashrc
 sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
+
+# Configure global gitignore
+mkdir -p ~/.config/git
+curl -s \
+  https://raw.githubusercontent.com/github/gitignore/master/{Global/JetBrains,Global/Vim,Global/VisualStudioCode,Global/macOS,Python,Terraform}.gitignore \
+  > ~/.config/git/ignore
