@@ -23,11 +23,6 @@ if [ ! -f private/.placeholder ]; then
     fi
 fi
 
-if [ -f $HOME/private/private-setup.sh ]; then
-    echo "Running ~/private/private-setup.sh"
-    . $HOME/private/private-setup.sh
-fi
-
 if [ -d $HOME/private/dot-aws -a ! -a $HOME/.aws ]; then
     echo "Linking .aws to ~/private/dot-aws"
     ln -s $HOME/private/dot-aws $HOME/.aws
@@ -36,4 +31,20 @@ fi
 if [ -f $HOME/private/dot-ssh/id_rsa -a ! -f $HOME/.ssh/id_rsa ]; then
     echo "Linking ssh private key to ~/.ssh"
     ln -s $HOME/private/dot-ssh/id_rsa $HOME/.ssh/id_rsa
+fi
+
+if [ -f $HOME/private/private-setup.sh ]; then
+    echo "Running ~/private/private-setup.sh"
+    . $HOME/private/private-setup.sh
+fi
+
+# Checkout & configure jormungand
+# See https://synthego.atlassian.net/wiki/spaces/CS/pages/721617002/Coding+environment+setup#Vault
+if [ ! -d $HOME/code/jormungand ]; then
+    mkdir -p $HOME/code  # Or create a symlink to your favorite alternative location
+    git clone git@github.com:Synthego/ansible-common.git $HOME/code/jormungand  # Rename in progress
+
+    run_commands_file="$HOME/.$(basename $(ps -p $$ -oargs= | sed s/-//))rc"
+    echo >> $run_commands_file
+    echo '. ~/code/jormungand/shell_includes.sh' >> $run_commands_file
 fi
