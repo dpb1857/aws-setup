@@ -1,5 +1,15 @@
 #!/bin/bash
 
+function machine_config() {
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    sudo apt-get upgrade -y
+    sudo apt-get install -y make mg postgresql-client jq nfs-common awscli
+
+    # Set the locale
+    sudo update-locale LANG=en_US.UTF-8
+}
+
 function add_user() {
     USER=$1
     if [ -z "${USER}" ]; then
@@ -59,16 +69,16 @@ function clone_jormungand() {
     fi
 }
 
-function source_remote() {
-    if [ -f $HOME/.remote ]; then
-        . $HOME/.remote
+function source_awsdev_config() {
+    if [ -f $HOME/.awsdev_config ]; then
+        . $HOME/.awsdev_config
     fi
 }
 
-function save_remote() {
-    echo "ip=\"${ip}\"" > $HOME/.remote
-    echo "username=\"${username}\"" >> $HOME/.remote
-    echo "sshkeys=\"${sshkeys}\"" >> $HOME/.remote
+function save_awsdev_config() {
+    echo "ip=\"${ip}\"" > $HOME/.awsdev_config
+    echo "username=\"${username}\"" >> $HOME/.awsdev_config
+    echo "sshkeys=\"${sshkeys}\"" >> $HOME/.awsdev_config
 }
 
 function get_ip() {
@@ -90,7 +100,7 @@ function get_ip() {
         exit 1
     fi
 
-    save_remote
+    save_awsdev_config
 }
 
 function get_username() {
@@ -128,17 +138,20 @@ function confirm() {
 }
 
 function main() {
-    source_remote
+    source_awsdev_config
     get_ip
     get_username
     get_sshkeys
-    save_remote
+    save_awsdev_config
     confirm
 
     scriptname=$(basename ${scriptpath})
 
     echo "Copy setup script & settings to remote"
-    rsync -a ${scriptpath} .remote ubuntu@${ip}:~
+    rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
+
+    echo "*** Running machine_config on remote host:"
+    ssh -t ubuntu@${ip} ./${scriptname} machine_config
 
     echo "*** Running adduser on remote host:"
     ssh -t ubuntu@${ip} ./${scriptname} add_user
@@ -169,6 +182,9 @@ if [ $# -eq 0 ]; then
 fi
 
 case $1 in
+    machine_config)
+        machine_config
+        ;;
     add_user)
         source_remote
         add_user ${username}
@@ -184,14 +200,3 @@ case $1 in
         echo "Unknown subcommand: $1"
         ;;
 esac
-
-
-# if [ $# -gt 0 -a "$1" = "remote" ]; then
-#     echo "remote"
-#     shift
-#     case $1 in
-#         jormungand) ssh ${ip} -l ubuntu ./aws-setup.sh jormungand
-#               ;;
-#     esac
-#     exit 0
-# fi
