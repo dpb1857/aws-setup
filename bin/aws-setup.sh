@@ -17,6 +17,11 @@ function machine_config() {
 
     # Set the locale
     sudo update-locale LANG=en_US.UTF-8
+
+    # Install vault
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+    sudo apt update && sudo apt install vault
 }
 
 function add_user() {
@@ -160,29 +165,16 @@ function main() {
     rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
 
     remote ubuntu machine_config "*** Running machine_config on remote host:"
-    # echo "*** Running machine_config on remote host:"
-    # ssh -t ubuntu@${ip} ./${scriptname} machine_config
-
     remote ubuntu add_user "*** Running adduser on remote host:"
-    # echo "*** Running adduser on remote host:"
-    # ssh -t ubuntu@${ip} ./${scriptname} add_user
-
-    echo "Pushing .aws credentials to remote user:"
+    echo "Pushing credentials & setup script to remote user:"
+    set -x
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
-
-    echo "Pushing id_rsa[.pub] in ${sshkeys} to remote ~${user}/.ssh"
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
-
-    echo "Upload setup script to new user..."
     rsync -a ${scriptpath} ${username}@${ip}:~
+    set +x
 
     remote ${username} setup_user "*** Run setup user command:"
-    # echo "*** Run setup user command:"
-    # ssh -t ${username}@${ip} ./${scriptname} setup_user
-
     remote ${username} clone_jormungand "*** Cloning jormungand on remote host:"
-    # echo "*** Cloning jormungand on remote host:"
-    # ssh ${username}@${ip} ./${scriptname} clone_jormungand
 
     return
 }
