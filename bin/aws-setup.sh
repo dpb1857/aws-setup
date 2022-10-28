@@ -10,18 +10,25 @@ function remote() {
 }
 
 function machine_config() {
+    echo "## Update system"
     export DEBIAN_FRONTEND=noninteractive
     sudo apt-get update
     sudo apt-get upgrade -y
+    echo "## Install additinal packages"
     sudo apt-get install -y make mg postgresql-client jq nfs-common awscli
 
     # Set the locale
+    echo "## Set system locale"
     sudo update-locale LANG=en_US.UTF-8
 
     # Install vault
+    echo "## Install vault"
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
     sudo apt update && sudo apt install vault
+
+    # Copy this script to /usr/local/bin
+    sudo cp -p ${scriptpath} /usr/local/bin/aws-setup
 }
 
 function add_user() {
@@ -30,19 +37,19 @@ function add_user() {
         echo "username unspecified."
         exit 1
     fi
-    echo "Creating user..."
+    echo "## Creating user..."
     sudo adduser ${USER}
-    echo "Adding user to sudo group..."
+    echo "## Adding user to sudo group..."
     sudo adduser ${USER} sudo
     sudo bash -c "echo \"${USER} ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers.d/90-cloud-init-users"
 
     # Just in case we decide to use docker...
-    echo "Adding user to docker group..."
+    echo "## Adding user to docker group..."
     sudo addgroup docker
     sudo adduser ${USER} docker
 
     # Copy the ubuntu user pub key into our new user
-    echo "Copy ubuntu authorized keys to ${USER}..."
+    echo "## Copy ubuntu authorized keys to ${USER}..."
     sudo mkdir /home/${USER}/.ssh
     sudo rsync -a /home/ubuntu/.ssh/authorized_keys /home/${USER}/.ssh
     sudo chown -R ${USER}:${USER} /home/${USER}/.ssh
@@ -55,7 +62,7 @@ function setup_user() {
     # sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
 
     # Configure global gitignore
-    echo "Configure global gitignore for user..."
+    echo "## Configure global gitignore for user..."
     mkdir -p ~/.config/git
     curl -s \
       https://raw.githubusercontent.com/github/gitignore/master/{Global/JetBrains,Global/Vim,Global/VisualStudioCode,Global/macOS,Python,Terraform}.gitignore \
@@ -63,12 +70,11 @@ function setup_user() {
 }
 
 function clone_jormungand() {
-    echo "Clone jormungand"
     # Checkout & configure jormungand
     # See https://synthego.atlassian.net/wiki/spaces/CS/pages/721617002/Coding+environment+setup#Vault
 
     if [ ! -d $HOME/code/jormungand ]; then
-        echo "Downloading jormungand"
+        echo "## Cloning jormungand"
         mkdir -p $HOME/code  # Or create a symlink to your favorite alternative location
         export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
         git clone git@github.com:Synthego/ansible-common.git $HOME/code/jormungand  # Rename in progress
@@ -81,6 +87,36 @@ function clone_jormungand() {
         # Load them here the first time
         . ~/code/jormungand/shell_includes.sh
     fi
+}
+
+function subsystem_pyenv() {
+    if [ -d ~/.pyenv ]; then
+        echo "pyenv already installed"
+        exit 1
+    fi
+
+    # Setup packages so pyenv can build python
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        gcc \
+        libbz2-dev zlib1g-dev liblzma-dev \
+        libsqlite3-dev libgdbm-dev \
+        libncurses-dev libreadline-dev uuid-dev libffi-dev libssl-dev
+
+    # install pyenv
+    git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+    (cd ~/.pyenv && src/configure && make -C src)
+
+    # install versions 3.6.8, 3.10.7
+    # pyenv install 3.6.8 # 3.6.8 pyenv install fails!
+    export PATH="$HOME/.pyenv/bin:$PATH"
+    pyenv install 3.10.7
+}
+
+function remove_local() {
+    rm -f ${scriptpath}
 }
 
 function source_awsdev_config() {
@@ -161,21 +197,21 @@ function main() {
 
     scriptname=$(basename ${scriptpath})
 
-    echo "Upload setup script & settings to remote"
+    echo "# Upload setup script & settings to remote"
     rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
 
-    remote ubuntu machine_config "*** Running machine_config on remote host:"
-    remote ubuntu add_user "*** Running adduser on remote host:"
-    echo "Pushing credentials & setup script to remote user:"
+    remote ubuntu machine_config '# Running machine_config on remote host:'
+    remote ubuntu add_user '# Running adduser on remote host:'
+    echo '# Pushing credentials & setup script to remote user:'
     set -x
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
     rsync -a ${scriptpath} ${username}@${ip}:~
     set +x
 
-    remote ${username} setup_user "*** Run setup user command:"
-    remote ${username} clone_jormungand "*** Cloning jormungand on remote host:"
-
+    remote ${username} setup_user '# Run setup user command:'
+    remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
+    remote ${username} remove_local '# Remove script from homedir'
     return
 }
 
@@ -185,6 +221,11 @@ if [ $# -eq 0 ]; then
     main
     exit 0
 fi
+
+help() {
+    echo "Subcommands:"
+    echo "  pyenv"
+}
 
 case $1 in
     machine_config)
@@ -201,7 +242,13 @@ case $1 in
     clone_jormungand)
         clone_jormungand
         ;;
+    remove_local)
+        remove_local
+        ;;
+    pyenv)
+        subsystem_pyenv
+        ;;
     *)
-        echo "Unknown subcommand: $1"
+        help
         ;;
 esac
