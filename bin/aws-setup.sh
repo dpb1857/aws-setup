@@ -1,5 +1,14 @@
 #!/bin/bash
 
+function remote() {
+    user=$1
+    cmd=$2
+    msg=$3
+
+    echo ${msg}
+    ssh -t ${user}@${ip} ./${scriptname} $cmd
+}
+
 function machine_config() {
     export DEBIAN_FRONTEND=noninteractive
     sudo apt-get update
@@ -111,7 +120,7 @@ function get_username() {
     fi
 }
 
-function get_sshkeys() {
+function get_sshkeys_dir() {
     if [ -z "$sshkeys" ]; then
         sshkeys="$HOME/.ssh"
     fi
@@ -141,20 +150,22 @@ function main() {
     source_awsdev_config
     get_ip
     get_username
-    get_sshkeys
+    get_sshkeys_dir
     save_awsdev_config
     confirm
 
     scriptname=$(basename ${scriptpath})
 
-    echo "Copy setup script & settings to remote"
+    echo "Upload setup script & settings to remote"
     rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
 
-    echo "*** Running machine_config on remote host:"
-    ssh -t ubuntu@${ip} ./${scriptname} machine_config
+    remote ubuntu machine_config "*** Running machine_config on remote host:"
+    # echo "*** Running machine_config on remote host:"
+    # ssh -t ubuntu@${ip} ./${scriptname} machine_config
 
-    echo "*** Running adduser on remote host:"
-    ssh -t ubuntu@${ip} ./${scriptname} add_user
+    remote ubuntu add_user "*** Running adduser on remote host:"
+    # echo "*** Running adduser on remote host:"
+    # ssh -t ubuntu@${ip} ./${scriptname} add_user
 
     echo "Pushing .aws credentials to remote user:"
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
@@ -162,14 +173,16 @@ function main() {
     echo "Pushing id_rsa[.pub] in ${sshkeys} to remote ~${user}/.ssh"
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
 
-    echo "Copy setup script to new user..."
+    echo "Upload setup script to new user..."
     rsync -a ${scriptpath} ${username}@${ip}:~
 
-    echo "*** Run setup user command:"
-    ssh -t ${username}@${ip} ./${scriptname} setup_user
+    remote ${username} setup_user "*** Run setup user command:"
+    # echo "*** Run setup user command:"
+    # ssh -t ${username}@${ip} ./${scriptname} setup_user
 
-    echo "*** Cloning jormungand on remote host:"
-    ssh ${username}@${ip} ./${scriptname} clone_jormungand
+    remote ${username} clone_jormungand "*** Cloning jormungand on remote host:"
+    # echo "*** Cloning jormungand on remote host:"
+    # ssh ${username}@${ip} ./${scriptname} clone_jormungand
 
     return
 }
@@ -186,7 +199,7 @@ case $1 in
         machine_config
         ;;
     add_user)
-        source_remote
+        source_awsdev_config
         add_user ${username}
         setup_user
         ;;
