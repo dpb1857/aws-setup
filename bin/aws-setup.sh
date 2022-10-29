@@ -1,21 +1,22 @@
 #!/bin/bash
 
+# Execute command on remote host
 function remote() {
     user=$1
     cmd=$2
     msg=$3
 
     echo ${msg}
-    ssh -t ${user}@${ip} ./${scriptname} $cmd
+    ssh -t ${user}@${ip} aws-setup $cmd
 }
 
-function machine_config() {
+# Install some base software on the remote host, configure
+function machine_init() {
     echo "## Update system"
-    export DEBIAN_FRONTEND=noninteractive
     sudo apt-get update
-    sudo apt-get upgrade -y
+    sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
     echo "## Install additinal packages"
-    sudo apt-get install -y make mg postgresql-client jq nfs-common awscli
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y make mg postgresql-client jq nfs-common awscli
 
     # Set the locale
     echo "## Set system locale"
@@ -25,12 +26,13 @@ function machine_config() {
     echo "## Install vault"
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-    sudo apt update && sudo apt install vault
+    sudo DEBIAN_FRONTEND=noninteractive apt update && sudo apt install vault
 
     # Copy this script to /usr/local/bin
     sudo cp -p ${scriptpath} /usr/local/bin/aws-setup
 }
 
+# Create a user on the remote host
 function add_user() {
     USER=$1
     if [ -z "${USER}" ]; then
@@ -55,6 +57,7 @@ function add_user() {
     sudo chown -R ${USER}:${USER} /home/${USER}/.ssh
 }
 
+# As the new remote user, do some setup
 function setup_user() {
     # Logged in as the user, complete setup
 
@@ -69,6 +72,7 @@ function setup_user() {
       > ~/.config/git/ignore
 }
 
+# Clone jormungand
 function clone_jormungand() {
     # Checkout & configure jormungand
     # See https://synthego.atlassian.net/wiki/spaces/CS/pages/721617002/Coding+environment+setup#Vault
@@ -89,6 +93,7 @@ function clone_jormungand() {
     fi
 }
 
+# Install pyenv
 function subsystem_pyenv() {
     if [ -d ~/.pyenv ]; then
         echo "pyenv already installed"
@@ -115,9 +120,87 @@ function subsystem_pyenv() {
     pyenv install 3.10.7
 }
 
-function remove_local() {
-    rm -f ${scriptpath}
+# Install qcducks
+function subsystem_qcducks() {
+    . ~/.gemfury
+    if [ "$GEMFURY_USERNAME" = "" ]; then
+      echo "must have GEMFURY_USERNAME set"
+      exit 1
+    fi
+    if ! command -v pyenv >/dev/null; then
+       echo "pyenv not found; re-source .bashrc?"
+       exit 1
+    fi
+
+    git clone git@github.com:Synthego/qcducks.git code/qcducks
+    (cd code/qcducks && git checkout -b requirements origin/don-update-requirements)
+    (cd $HOME/code/qcducks && pyenv local 3.10.7)
+    (cd $HOME/code/qcducks && python -m venv venv)
+    (cd $HOME/code/qcducks && venv/bin/pip install --upgrade pip)
+    (cd $HOME/code/qcducks && venv/bin/pip install wheel)
+
+    # Support for modules in python requirements
+    # sudo apt-get install libcurl4-openssl-dev libldap-dev libsasl2-dev
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y pkgconf libpq-dev libcurl4-openssl-dev
+
+    (cd $HOME/code/qcducks && venv/bin/pip install -r requirements.txt)
 }
+
+# docker
+function subsystem_docker() {
+    if [ -f /etc/apt/keyrings/docker.gpg ]; then
+        echo "Docker already installed"
+        return
+    fi
+
+    # from https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+    # Add official GPG key
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+    # Setup repository
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Update and install
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    # Barb docker dev needs vault command line tool
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+    sudo apt update && sudo apt install vault
+}
+
+# Install desktop
+function subsystem_desktop() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cinnamon # cinnamon-desktop-environment
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-dejavu-core # don uses in emacs
+
+    # Disable lightdm, install nx (from nomachine)
+    sudo systemctl stop lightdm
+    sudo systemctl disable lightdm
+    file=nomachine_8.1.2_1_amd64.deb
+    (cd /tmp && wget https://download.nomachine.com/download/8.1/Linux/$file)
+    sudo dpkg -i /tmp/$file
+
+    # Install Chrome
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+    sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -y install google-chrome-stable
+
+    echo "*** Need to reboot to enable remote desktop login with nx ***"
+    read -p "Reboot now? (Y/n) " response
+    if [ -z "$response" -o "$response" = "Y" ]; then
+        echo "rebooting now"
+        sudo reboot
+    fi
+}
+
+######################################################################
+# Functions to query for info we need to setup the remove machine
+######################################################################
 
 function source_awsdev_config() {
     if [ -f $HOME/.awsdev_config ]; then
@@ -129,6 +212,7 @@ function save_awsdev_config() {
     echo "ip=\"${ip}\"" > $HOME/.awsdev_config
     echo "username=\"${username}\"" >> $HOME/.awsdev_config
     echo "sshkeys=\"${sshkeys}\"" >> $HOME/.awsdev_config
+    echo "gemfury_tokens=\"${gemfury_tokens}\"" >> $HOME/.awsdev_config
 }
 
 function get_ip() {
@@ -154,11 +238,15 @@ function get_ip() {
 }
 
 function get_username() {
-    username=`whoami`
-    read -p "our username on the remote host? (${username}) " new_username
+    if [ -z "${username}" ]; then
+        username=`whoami`
+    fi
+    read -p "Username to create on remote host? (${username}) " new_username
     if [ ! -z ${new_username} ]; then
         username=${new_username}
     fi
+
+    save_awsdev_config
 }
 
 function get_sshkeys_dir() {
@@ -171,20 +259,48 @@ function get_sshkeys_dir() {
     fi
 
     if [ ! -d ${sshkeys} -o ! -f ${sshkeys}/id_rsa ]; then
-        echo "sshkeys not found" 1>&2
+        echo "sshkeys directory ${sshkeys} not found" 1>&2
         exit 2
     fi
+
+    save_awsdev_config
+}
+
+function get_gemfury_tokens() {
+    if [ -z "${gemfury_tokens}" ]; then
+        gemfury_tokens="$HOME/.gemfury"
+    fi
+    read -p "Gemfury tokens file? (${gemfury_tokens}) " new_gemfury_tokens
+    if [ ! -z ${new_gemfury_tokens} ]; then
+        gemfury_tokens=${new_gemfury_tokens}
+    fi
+
+    if [ ! -f ${gemfury_tokens} ]; then
+        echo "Gemfury tokens file \"${gemfury_tokens}\" not found" 1>&2
+        exit 3
+    fi
+
+    save_awsdev_config
 }
 
 function confirm() {
-    echo "Creating user on remote host"
+    echo "### Confirm creation parameters ###"
     echo "Host: ${ip}"
     echo "Username: ${username}"
     echo "ssh keys copied from ${sshkeys}"
+    echo "gemfury tokens in file ${gemfury_tokens}"
     read -p "Continue? (Y/n) " confirm
     if [ "$confirm" = "n" -o "$confirm" = "no" ]; then
-        exit 3
+        exit 4
     fi
+}
+
+# Install/Update script on remote host
+function update_remote() {
+    scriptname=$(basename ${scriptpath})
+    echo "# Upload setup script & settings to remote"
+    rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
+    ssh ubuntu@${ip} sudo mv ${scriptname} /usr/local/bin/aws-setup
 }
 
 function main() {
@@ -192,32 +308,28 @@ function main() {
     get_ip
     get_username
     get_sshkeys_dir
-    save_awsdev_config
+    get_gemfury_tokens
     confirm
 
-    scriptname=$(basename ${scriptpath})
-
-    echo "# Upload setup script & settings to remote"
-    rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
-
-    remote ubuntu machine_config '# Running machine_config on remote host:'
+    update_remote
+    remote ubuntu machine_init '# Running machine_init on remote host:'
     remote ubuntu add_user '# Running adduser on remote host:'
     echo '# Pushing credentials & setup script to remote user:'
     set -x
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
     rsync -a ${scriptpath} ${username}@${ip}:~
+    rsync -a ${gemfury_tokens} ${username}@${ip}:~/.gemfury
     set +x
 
     remote ${username} setup_user '# Run setup user command:'
     remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
-    remote ${username} remove_local '# Remove script from homedir'
     return
 }
 
 scriptpath=$(readlink -f -- "$0")
 
-if [ $# -eq 0 ]; then
+if [ $# -eq 0 -a ! -f /var/log/cloud-init.log ]; then
     main
     exit 0
 fi
@@ -225,11 +337,18 @@ fi
 help() {
     echo "Subcommands:"
     echo "  pyenv"
+    echo "  qcducks"
+    echo "  desktop"
+    echo "  docker"
 }
 
 case $1 in
-    machine_config)
-        machine_config
+    update)
+        source_awsdev_config
+        update_remote
+        ;;
+    machine_init)
+        machine_init
         ;;
     add_user)
         source_awsdev_config
@@ -242,11 +361,17 @@ case $1 in
     clone_jormungand)
         clone_jormungand
         ;;
-    remove_local)
-        remove_local
-        ;;
     pyenv)
         subsystem_pyenv
+        ;;
+    qcducks)
+        subsystem_qcducks
+        ;;
+    desktop)
+        subsystem_desktop
+        ;;
+    docker)
+        subsystem_docker
         ;;
     *)
         help
