@@ -132,8 +132,7 @@ function subsystem_pyenv() {
     (cd ~/.pyenv && src/configure && make -C src)
 
     export PATH="$HOME/.pyenv/bin:$PATH"
-    pyenv install 3.6.15
-    # pyenv install 3.10.7
+    pyenv install 3.10.8
 }
 
 # Install qcducks
