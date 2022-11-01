@@ -36,9 +36,6 @@ function machine_init() {
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
     sudo DEBIAN_FRONTEND=noninteractive apt update && sudo apt install vault
-
-    # Copy this script to /usr/local/bin
-    sudo cp -p ${scriptpath} /usr/local/bin/aws-setup # XXX TODO remove?
 }
 
 # Create a user on the remote host
@@ -85,6 +82,11 @@ function setup_user() {
     curl -s \
       https://raw.githubusercontent.com/github/gitignore/master/{Global/JetBrains,Global/Vim,Global/VisualStudioCode,Global/macOS,Python,Terraform}.gitignore \
       > ~/.config/git/ignore
+
+    # Source gemfury tokens from .bashrc
+    echo "## Add .bashrc line to source gemfury tokens"
+    echo ". $HOME/.gemfury" >> $HOME/.bashrc
+
 }
 
 # Clone jormungand
@@ -396,7 +398,6 @@ function main() {
     set -x
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
-    rsync -a ${scriptpath} ${username}@${ip}:~ # XXX TODO remove?
     rsync -a ${gemfury_tokens} ${username}@${ip}:~/.gemfury
     set +x
 
