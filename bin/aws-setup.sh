@@ -38,7 +38,7 @@ function machine_init() {
     sudo DEBIAN_FRONTEND=noninteractive apt update && sudo apt install vault
 
     # Copy this script to /usr/local/bin
-    sudo cp -p ${scriptpath} /usr/local/bin/aws-setup
+    sudo cp -p ${scriptpath} /usr/local/bin/aws-setup # XXX TODO remove?
 }
 
 # Create a user on the remote host
@@ -169,6 +169,7 @@ function subsystem_docker() {
 
     # from https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
     # Add official GPG key
+    sudo mkdir -p /etc/apt/keyrings  # needed on 20.04
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
     # Setup repository
@@ -184,6 +185,46 @@ function subsystem_docker() {
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
     sudo apt update && sudo apt install vault
+}
+
+function subsystem_barb_docker() {
+    if [ "$GEMFURY_USERNAME" = "" ]; then
+      echo "must have GEMFURY_USERNAME set"
+      exit 1
+    fi
+
+    git clone git@github.com:Synthego/barb.git code/barb
+
+    (cd $HOME/code/barb && make build)
+
+    echo "*** Need a database? This takes a long time to setup... ***"
+    read -p "Restore db snapshot? (y/N) " response
+    if [ "$response" = "y" -o "$response" = "Y" ]; then
+       (cd $HOME/code/barb && make dbsync)
+    fi
+}
+
+function subsystem_barb_bare() {
+    if [ "$GEMFURY_USERNAME" = "" ]; then
+      echo "must have GEMFURY_USERNAME set"
+      exit 1
+    fi
+    if ! command -v pyenv >/dev/null; then
+       echo "pyenv not found; re-source .bashrc?"
+       exit 1
+    fi
+
+    if [ ! -d $HOME/code/barb ]; then
+        git clone git@github.com:Synthego/barb.git $HOME/code/barb
+    fi
+    (cd $HOME/code/barb && pyenv local 3.6.15)
+    (cd $HOME/code/barb && python -m venv venv)
+    (cd $HOME/code/barb && venv/bin/pip install --upgrade pip)
+    (cd $HOME/code/barb && venv/bin/pip install wheel)
+
+    # Support for modules in python requirements
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libcurl4-openssl-dev libldap-dev libsasl2-dev
+    (cd $HOME/code/barb && venv/bin/pip install -r requirements.txt)
 }
 
 # Install desktop
@@ -355,12 +396,13 @@ function main() {
     set -x
     rsync -a $HOME/.aws/ ${username}@${ip}:~/.aws
     rsync -a ${sshkeys}/ ${username}@${ip}:~/.ssh
-    rsync -a ${scriptpath} ${username}@${ip}:~
+    rsync -a ${scriptpath} ${username}@${ip}:~ # XXX TODO remove?
     rsync -a ${gemfury_tokens} ${username}@${ip}:~/.gemfury
     set +x
 
     remote ${username} setup_user '# Run setup user command:'
     remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
+    remote ${username} docker '# Installing docker on remote host:'
 
     echo '# Finished inital setup, login and run "aws-setup help" for more options'
 }
@@ -378,6 +420,8 @@ help() {
     echo "  qcducks"
     echo "  desktop"
     echo "  docker"
+    echo "  barb-bare"
+    echo "  barb-docker"
 }
 
 case $1 in
@@ -411,6 +455,12 @@ case $1 in
         ;;
     docker)
         subsystem_docker
+        ;;
+    barb-bare)
+        subsystem_barb_bare
+        ;;
+    barb-docker)
+        subsystem_barb_docker
         ;;
     *)
         help
