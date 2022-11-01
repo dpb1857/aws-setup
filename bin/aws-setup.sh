@@ -10,11 +10,20 @@ function remote() {
     ssh -t ${user}@${ip} aws-setup $cmd
 }
 
+# Install/Update script on remote host
+function update_remote() {
+    scriptname=$(basename ${scriptpath})
+    echo "# Upload setup script & settings to remote"
+    rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
+    ssh ubuntu@${ip} sudo mv ${scriptname} /usr/local/bin/aws-setup
+}
+
 # Install some base software on the remote host, configure
 function machine_init() {
     echo "## Update system"
     sudo apt-get update
     sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+
     echo "## Install additinal packages"
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y make mg postgresql-client jq nfs-common awscli
 
@@ -55,14 +64,20 @@ function add_user() {
     sudo mkdir /home/${USER}/.ssh
     sudo rsync -a /home/ubuntu/.ssh/authorized_keys /home/${USER}/.ssh
     sudo chown -R ${USER}:${USER} /home/${USER}/.ssh
+
+    # Copy our awsdev_config to the new user
+    echo "## Copy .awsdev_config to ${USER}..."
+    sudo cp /home/ubuntu/.awsdev_config /home/${USER}/.awsdev_config
+    sudo chown ${USER}:${USER} /home/${USER}/.awsdev_config
 }
 
-# As the new remote user, do some setup
+# As the new remote user, do some user setup
 function setup_user() {
     # Logged in as the user, complete setup
 
-    # Add startup hook into .bashrc
-    # sudo bash -c "echo '. /usr/local/aws-setup/shell/hook.sh' >> /home/${USER}/.bashrc"
+    # Configure git user settings
+    git config --global --add user.name "$gitusername"
+    git config --global --add user.email "$gitemail"
 
     # Configure global gitignore
     echo "## Configure global gitignore for user..."
@@ -78,7 +93,7 @@ function clone_jormungand() {
     # See https://synthego.atlassian.net/wiki/spaces/CS/pages/721617002/Coding+environment+setup#Vault
 
     if [ ! -d $HOME/code/jormungand ]; then
-        echo "## Cloning jormungand"
+        echo "## Checkout jormungand"
         mkdir -p $HOME/code  # Or create a symlink to your favorite alternative location
         export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
         git clone git@github.com:Synthego/ansible-common.git $HOME/code/jormungand  # Rename in progress
@@ -114,10 +129,9 @@ function subsystem_pyenv() {
     echo 'eval "$(pyenv init -)"' >> ~/.bashrc
     (cd ~/.pyenv && src/configure && make -C src)
 
-    # install versions 3.6.8, 3.10.7
-    # pyenv install 3.6.8 # 3.6.8 pyenv install fails!
     export PATH="$HOME/.pyenv/bin:$PATH"
-    pyenv install 3.10.7
+    pyenv install 3.6.15
+    # pyenv install 3.10.7
 }
 
 # Install qcducks
@@ -202,7 +216,7 @@ function subsystem_desktop() {
 # Functions to query for info we need to setup the remove machine
 ######################################################################
 
-function source_awsdev_config() {
+function load_awsdev_config() {
     if [ -f $HOME/.awsdev_config ]; then
         . $HOME/.awsdev_config
     fi
@@ -213,6 +227,8 @@ function save_awsdev_config() {
     echo "username=\"${username}\"" >> $HOME/.awsdev_config
     echo "sshkeys=\"${sshkeys}\"" >> $HOME/.awsdev_config
     echo "gemfury_tokens=\"${gemfury_tokens}\"" >> $HOME/.awsdev_config
+    echo "gitusername=\"${gitusername}\"" >> $HOME/.awsdev_config
+    echo "gitemail=\"${gitemail}\"" >> $HOME/.awsdev_config
 }
 
 function get_ip() {
@@ -283,32 +299,53 @@ function get_gemfury_tokens() {
     save_awsdev_config
 }
 
+function get_gitusername() {
+    if [ -z "${gitusername}" ]; then
+        gitusername=$(git config --get user.name)
+    fi
+
+    read -p "Git user fullname to create on remote host? (${gitusername}) " new_gitusername
+    if [ ! -z "${new_gitusername}" ]; then
+        gitusername="${new_gitusername}"
+    fi
+
+    save_awsdev_config
+}
+
+function get_gitemail() {
+    if [ -z "${gitemail}" ]; then
+        gitemail=$(git config --get user.email)
+    fi
+    read -p "Git email to create on remote host? (${gitemail}) " new_gitemail
+    if [ ! -z ${new_gitemail} ]; then
+        gitemail=${new_gitemail}
+    fi
+
+    save_awsdev_config
+}
+
 function confirm() {
     echo "### Confirm creation parameters ###"
     echo "Host: ${ip}"
     echo "Username: ${username}"
     echo "ssh keys copied from ${sshkeys}"
     echo "gemfury tokens in file ${gemfury_tokens}"
+    echo "git user name: ${gitusername}"
+    echo "git email: ${gitemail}"
     read -p "Continue? (Y/n) " confirm
     if [ "$confirm" = "n" -o "$confirm" = "no" ]; then
         exit 4
     fi
 }
 
-# Install/Update script on remote host
-function update_remote() {
-    scriptname=$(basename ${scriptpath})
-    echo "# Upload setup script & settings to remote"
-    rsync -a ${scriptpath} ~/.awsdev_config ubuntu@${ip}:~
-    ssh ubuntu@${ip} sudo mv ${scriptname} /usr/local/bin/aws-setup
-}
-
 function main() {
-    source_awsdev_config
+    load_awsdev_config
     get_ip
     get_username
     get_sshkeys_dir
     get_gemfury_tokens
+    get_gitusername
+    get_gitemail
     confirm
 
     update_remote
@@ -324,7 +361,8 @@ function main() {
 
     remote ${username} setup_user '# Run setup user command:'
     remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
-    return
+
+    echo '# Finished inital setup, login and run "aws-setup help" for more options'
 }
 
 scriptpath=$(readlink -f -- "$0")
@@ -344,18 +382,19 @@ help() {
 
 case $1 in
     update)
-        source_awsdev_config
+        load_awsdev_config
         update_remote
         ;;
     machine_init)
         machine_init
         ;;
     add_user)
-        source_awsdev_config
+        load_awsdev_config
         add_user ${username}
         setup_user
         ;;
     setup_user)
+        load_awsdev_config
         setup_user
         ;;
     clone_jormungand)
