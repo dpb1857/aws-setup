@@ -197,8 +197,13 @@ function subsystem_barb_docker() {
     if [ ! -d $HOME/.envs ]; then
         mkdir $HOME/.envs
     fi
-    git clone git@github.com:Synthego/barb.git code/barb
+    if [ ! -d $HOME/code/barb ]; then
+        echo "## Clone barb repo..."
+        git clone git@github.com:Synthego/barb.git code/barb
+    fi
+    echo "## Vault login..."
     vault login -method=aws role=developer  # vlogin
+    echo "## Barb 'make build'..."
     (cd $HOME/code/barb && make build)
 
     echo "*** Need a database? This takes a long time to setup... ***"
@@ -219,6 +224,7 @@ function subsystem_barb_bare() {
     fi
 
     if [ ! -d $HOME/code/barb ]; then
+        echo "## Clone barb repo..."
         git clone git@github.com:Synthego/barb.git $HOME/code/barb
     fi
     (cd $HOME/code/barb && pyenv local 3.10.8)
@@ -407,6 +413,8 @@ function main() {
     remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
     remote ${username} docker '# Installing docker on remote host:'
     remote ${username} barb-docker '# Installing barb docker environment:'
+    remote ${username} pyenv '# Installing pyenv:'
+    remote ${username} barb-bare '# Installing local pyenv for barb:'
 
     echo '# Finished inital setup, login and run "aws-setup help" for more options'
 }
@@ -414,9 +422,18 @@ function main() {
 scriptpath=$(readlink -f -- "$0")
 
 if [ $# -eq 0 -a ! -f /var/log/cloud-init.log ]; then
+    # on the local dev machine
     main
     exit 0
 fi
+
+# On the target aws host
+
+# bashrc settings that don't get set in a non-interactive shell
+. ~/.gemfury
+export VAULT_ADDR=https://vault.synthego.at
+export PATH="$HOME/.pyenv/bin:$PATH"
+
 
 help() {
     echo "Subcommands:"
