@@ -35,7 +35,7 @@ function machine_init() {
     echo "## Install vault"
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-    sudo DEBIAN_FRONTEND=noninteractive apt update && sudo apt install vault
+    sudo DEBIAN_FRONTEND=noninteractive apt update && sudo apt install -y vault
 }
 
 # Create a user on the remote host
@@ -149,7 +149,7 @@ function subsystem_qcducks() {
 
     git clone git@github.com:Synthego/qcducks.git code/qcducks
     (cd code/qcducks && git checkout -b requirements origin/don-update-requirements)
-    (cd $HOME/code/qcducks && pyenv local 3.10.7)
+    (cd $HOME/code/qcducks && pyenv local 3.10.8)
     (cd $HOME/code/qcducks && python -m venv venv)
     (cd $HOME/code/qcducks && venv/bin/pip install --upgrade pip)
     (cd $HOME/code/qcducks && venv/bin/pip install wheel)
@@ -221,7 +221,7 @@ function subsystem_barb_bare() {
     if [ ! -d $HOME/code/barb ]; then
         git clone git@github.com:Synthego/barb.git $HOME/code/barb
     fi
-    (cd $HOME/code/barb && pyenv local 3.10.7)
+    (cd $HOME/code/barb && pyenv local 3.10.8)
     (cd $HOME/code/barb && python -m venv venv)
     (cd $HOME/code/barb && venv/bin/pip install --upgrade pip)
     (cd $HOME/code/barb && venv/bin/pip install wheel)
@@ -406,6 +406,7 @@ function main() {
     remote ${username} setup_user '# Run setup user command:'
     remote ${username} clone_jormungand '# Cloning jormungand on remote host:'
     remote ${username} docker '# Installing docker on remote host:'
+    remote ${username} barb-docker '# Installing barb docker environment:'
 
     echo '# Finished inital setup, login and run "aws-setup help" for more options'
 }
