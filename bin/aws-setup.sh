@@ -194,8 +194,11 @@ function subsystem_barb_docker() {
       exit 1
     fi
 
+    if [ ! -d $HOME/.envs ]; then
+        mkdir $HOME/.envs
+    fi
     git clone git@github.com:Synthego/barb.git code/barb
-
+    vault login -method=aws role=developer  # vlogin
     (cd $HOME/code/barb && make build)
 
     echo "*** Need a database? This takes a long time to setup... ***"
@@ -218,7 +221,7 @@ function subsystem_barb_bare() {
     if [ ! -d $HOME/code/barb ]; then
         git clone git@github.com:Synthego/barb.git $HOME/code/barb
     fi
-    (cd $HOME/code/barb && pyenv local 3.6.15)
+    (cd $HOME/code/barb && pyenv local 3.10.7)
     (cd $HOME/code/barb && python -m venv venv)
     (cd $HOME/code/barb && venv/bin/pip install --upgrade pip)
     (cd $HOME/code/barb && venv/bin/pip install wheel)
